@@ -8,7 +8,7 @@ import { AuthResponse, User } from '../models';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:5000/api/v1/auth';
+  private apiUrl = 'https://gateway-service-a8bo.onrender.com/api/v1/auth';
   
   currentUser = signal<User | null>(this.getUserFromStorage());
   isAuthenticated = signal<boolean>(!!this.getToken());

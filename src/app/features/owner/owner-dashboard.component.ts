@@ -725,7 +725,7 @@ export class OwnerDashboardComponent {
 
   seedMyOutlets() {
     this.loading.set(true);
-    this.http.post('http://localhost:5000/api/v1/restaurants/seed-my-outlets', {}).subscribe({
+    this.http.post('https://gateway-service-a8bo.onrender.com/api/v1/restaurants/seed-my-outlets', {}).subscribe({
       next: () => {
         this.refreshAll();
         alert('SUCCESS: 5 outlets seeded with test orders! Refreshing dashboard...');

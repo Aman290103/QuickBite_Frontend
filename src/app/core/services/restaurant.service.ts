@@ -7,7 +7,7 @@ import { Restaurant } from '../models';
   providedIn: 'root'
 })
 export class RestaurantService {
-  private apiUrl = 'http://localhost:5000/api/v1/restaurants';
+  private apiUrl = 'https://gateway-service-a8bo.onrender.com/api/v1/restaurants';
 
   constructor(private http: HttpClient) {}
 

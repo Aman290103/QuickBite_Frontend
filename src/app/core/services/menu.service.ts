@@ -7,7 +7,7 @@ import { MenuCategory, MenuItem } from '../models';
   providedIn: 'root'
 })
 export class MenuService {
-  private apiUrl = 'http://localhost:5000/api/v1/menu';
+  private apiUrl = 'https://gateway-service-a8bo.onrender.com/api/v1/menu';
 
   constructor(private http: HttpClient) {}
 

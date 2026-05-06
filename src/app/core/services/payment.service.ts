@@ -9,7 +9,7 @@ declare var Razorpay: any;
 })
 export class PaymentService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:5000/api/v1/payments';
+  private apiUrl = 'https://gateway-service-a8bo.onrender.com/api/v1/payments';
   private razorpayKey = 'rzp_test_SfiZQYAPtU4oMA';
 
   initiateRazorpayPayment(amount: number, orderId: string): Observable<any> {

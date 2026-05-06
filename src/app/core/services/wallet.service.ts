@@ -7,7 +7,7 @@ import { WalletBalance, WalletStatement } from '../models';
   providedIn: 'root'
 })
 export class WalletService {
-  private apiUrl = 'http://localhost:5000/api/v1/wallet';
+  private apiUrl = 'https://gateway-service-a8bo.onrender.com/api/v1/wallet';
 
   constructor(private http: HttpClient) {}
 

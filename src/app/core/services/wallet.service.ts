@@ -2,12 +2,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { WalletBalance, WalletStatement } from '../models';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class WalletService {
-  private apiUrl = 'http://localhost:8080/api/v1/paywallet';
+  private apiUrl = `${environment.apiUrl}/paywallet`;
 
   constructor(private http: HttpClient) {}
 

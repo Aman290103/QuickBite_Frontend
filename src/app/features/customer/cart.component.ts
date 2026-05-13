@@ -140,7 +140,21 @@ import { PaymentService } from '../../core/services/payment.service';
             
             <div class="bill-row total">
               <span>To Pay</span>
-              <span>₹{{ cart().grandTotal }}</span>
+              <span>₹{{ appliedPromo() ? (cart().grandTotal * 0.8).toFixed(2) : cart().grandTotal }}</span>
+            </div>
+
+            <div class="promo-section" style="margin: 1.5rem 0;">
+              <p style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase;">Promo Code</p>
+              <div class="promo-input-group" style="display: flex; gap: 0.5rem;">
+                <input type="text" [(ngModel)]="promoCode" placeholder="Enter code (e.g. QUICK20)" 
+                       style="flex: 1; padding: 0.75rem; border: 1px solid var(--border); border-radius: 12px; text-transform: uppercase;">
+                <button class="btn-primary" (click)="applyPromo()" [disabled]="!promoCode" 
+                        style="padding: 0.75rem 1.25rem; border-radius: 12px; font-weight: 700;">
+                  Apply
+                </button>
+              </div>
+              <p *ngIf="appliedPromo()" style="color: #22c55e; font-size: 0.8rem; font-weight: 600; margin-top: 0.5rem;">✅ 20% discount applied!</p>
+              <p *ngIf="promoError()" style="color: #ef4444; font-size: 0.8rem; font-weight: 600; margin-top: 0.5rem;">❌ {{ promoError() }}</p>
             </div>
 
             <div class="payment-note">
@@ -322,6 +336,10 @@ export class CartComponent implements OnInit {
   upiProcessing = signal(false);
   upiId = 'quickbite@upi';
   currentOrderId = '';
+  
+  promoCode = '';
+  appliedPromo = signal(false);
+  promoError = signal('');
 
   ngOnInit() {
     this.cartService.loadCart().subscribe();
@@ -340,6 +358,17 @@ export class CartComponent implements OnInit {
     this.cartService.removeFromCart(itemId).subscribe();
   }
 
+  applyPromo() {
+    this.promoError.set('');
+    this.appliedPromo.set(false);
+    
+    if (this.promoCode.trim().toUpperCase() === 'QUICK20') {
+      this.appliedPromo.set(true);
+    } else {
+      this.promoError.set('Invalid or expired promo code.');
+    }
+  }
+
   onCheckout() {
     if (!this.deliveryAddress || !this.paymentMode) return;
     this.loading.set(true);
@@ -347,7 +376,8 @@ export class CartComponent implements OnInit {
     const orderData = {
       modeOfPayment: this.paymentMode,
       deliveryAddress: this.deliveryAddress,
-      specialInstructions: ''
+      specialInstructions: '',
+      promoCode: this.appliedPromo() ? 'QUICK20' : null
     };
         this.orderService.placeOrder(orderData).subscribe({
       next: (order: any) => {
@@ -402,7 +432,7 @@ export class CartComponent implements OnInit {
   }
 
   private handleSuccess() {
-    alert('Order placed successfully!');
+    alert('Order placed successfully! 🎉\n\n📱 SMS SENT: "Your QuickBite order has been confirmed and is being prepared. Track your order status in the app!"');
     this.cartService.clearCart().subscribe();
     this.router.navigate(['/customer/history']);
     this.loading.set(false);

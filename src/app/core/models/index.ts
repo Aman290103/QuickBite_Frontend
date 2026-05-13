@@ -58,6 +58,7 @@ export interface Order {
   totalAmount: number;
   status: 'PLACED' | 'CONFIRMED' | 'PREPARING' | 'READY' | 'PICKED_UP' | 'DELIVERED' | 'CANCELLED';
   deliveryAddress: string;
+  agentId?: string;
   specialInstructions?: string;
   createdAt: string;
 }

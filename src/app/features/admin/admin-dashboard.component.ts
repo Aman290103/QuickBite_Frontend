@@ -512,9 +512,15 @@ export class AdminDashboardComponent {
   }
 
   forceUpdateStatus(orderId: string, status: string) {
-    this.orderService.updateOrderStatus(orderId, status).subscribe(() => {
-      this.fetchDataForTab('orders');
-      alert('Order status force-updated successfully');
+    this.orderService.updateOrderStatus(orderId, status).subscribe({
+      next: () => {
+        this.fetchDataForTab('orders');
+        alert('Order status force-updated successfully');
+      },
+      error: (err) => {
+        console.error('Error force updating status', err);
+        alert('Failed to update status. Ensure you have the correct permissions.');
+      }
     });
   }
 

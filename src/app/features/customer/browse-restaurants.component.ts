@@ -13,6 +13,18 @@ import { StarRatingComponent } from '../../shared/components/star-rating.compone
   imports: [CommonModule, RouterModule, StarRatingComponent],
   template: `
     <div class="browse-container animate-slide-up">
+      <!-- Admin Notification / Offers -->
+      <div class="admin-notification" *ngIf="showNotification()">
+        <div class="notif-content">
+          <span class="icon">🎉</span>
+          <div class="text">
+            <strong>Exclusive Offer!</strong>
+            <p>Use code <b>QUICK20</b> on any Fast Delivery restaurant to get 20% off your next order.</p>
+          </div>
+        </div>
+        <button class="close-btn" (click)="showNotification.set(false)">×</button>
+      </div>
+
       <!-- Hero Carousel / Categories -->
       <section class="categories-section">
         <h2 class="section-title">Inspiration for your first order</h2>
@@ -52,7 +64,14 @@ import { StarRatingComponent } from '../../shared/components/star-rating.compone
             @for (restaurant of filteredRestaurants(); track restaurant.id) {
               <div class="restaurant-card" [routerLink]="['/customer/restaurant', restaurant.id]">
                 <div class="image-wrapper">
-                  <img [src]="restaurant.imageUrl || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600'" [alt]="restaurant.name">
+                  @if (restaurant.imageUrl) {
+                    <img [src]="restaurant.imageUrl"
+                         [alt]="restaurant.name"
+                         (error)="onImgError($event, restaurant.cuisine)">
+                  } @else {
+                    <img [src]="getFallbackImage(restaurant.cuisine)"
+                         [alt]="restaurant.name">
+                  }
                   <div class="offer-tag" *ngIf="restaurant.minOrderAmount < 500">Free Delivery</div>
                   <div class="rating-badge" [class.new]="!restaurant.reviewCount">
                     <app-star-rating [rating]="restaurant.avgRating" [showText]="true"></app-star-rating>
@@ -201,6 +220,17 @@ import { StarRatingComponent } from '../../shared/components/star-rating.compone
       object-fit: cover;
     }
     
+    .placeholder-icon {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-light);
+      font-size: 3rem;
+      color: var(--text-muted);
+    }
+    
     .offer-tag {
       position: absolute;
       bottom: 1rem;
@@ -276,6 +306,32 @@ import { StarRatingComponent } from '../../shared/components/star-rating.compone
     }
     
     .empty-state img { width: 200px; margin-bottom: 2rem; }
+
+    /* Notification Styles */
+    .admin-notification {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      margin-bottom: 2rem;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(255,82,49,0.1), rgba(255,160,49,0.1));
+      border: 1px solid rgba(255,82,49,0.2);
+    }
+    .notif-content { display: flex; align-items: center; gap: 1rem; }
+    .notif-content .icon { font-size: 1.8rem; animation: tada 2s infinite; }
+    .notif-content strong { color: var(--primary); font-size: 1.1rem; display: block; margin-bottom: 4px; }
+    .notif-content p { color: var(--text-main); font-size: 0.95rem; margin: 0; }
+    .admin-notification .close-btn { background: none; border: none; font-size: 1.8rem; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 0 0.5rem; }
+    .admin-notification .close-btn:hover { color: var(--text-main); }
+    
+    @keyframes tada {
+      0% { transform: scale(1); }
+      10%, 20% { transform: scale(0.9) rotate(-3deg); }
+      30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+      40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+      100% { transform: scale(1) rotate(0); }
+    }
   `]
 })
 export class BrowseRestaurantsComponent implements OnInit {
@@ -287,6 +343,7 @@ export class BrowseRestaurantsComponent implements OnInit {
   filteredRestaurants = signal<Restaurant[]>([]);
   loading = signal(false);
   activeFilter = signal<string>('relevance');
+  showNotification = signal(true);
 
   categories = [
     { name: 'Pizza', img: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=300&q=80' },
@@ -296,7 +353,7 @@ export class BrowseRestaurantsComponent implements OnInit {
     { name: 'Chinese', img: 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=300&q=80' },
     { name: 'Desserts', img: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=300&q=80' },
     { name: 'Healthy', img: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=300&q=80' },
-    { name: 'Beverages', img: 'https://images.unsplash.com/photo-1544145945-f904253d0c71?w=300&q=80' }
+    { name: 'Beverages', img: 'https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?w=300&q=80' }
   ];
 
   constructor() {
@@ -319,7 +376,7 @@ export class BrowseRestaurantsComponent implements OnInit {
 
   loadRestaurants(lat: number, lon: number) {
     this.loading.set(true);
-    this.restaurantService.getNearbyRestaurants(lat, lon, 15).subscribe({
+    this.restaurantService.getNearbyRestaurants(lat, lon, 500).subscribe({
       next: (data) => {
         this.restaurants.set(data);
         this.applyFilters();
@@ -344,7 +401,7 @@ export class BrowseRestaurantsComponent implements OnInit {
         list = list.filter(r => r.avgRating >= 4.0);
         break;
       case 'fast':
-        list = list.sort((a, b) => a.estimatedDeliveryMin - b.estimatedDeliveryMin);
+        list = list.filter(r => r.estimatedDeliveryMin <= 15).sort((a, b) => a.estimatedDeliveryMin - b.estimatedDeliveryMin);
         break;
       case 'offers':
         list = list.filter(r => r.minOrderAmount < 300); // Mocking offers logic
@@ -375,5 +432,25 @@ export class BrowseRestaurantsComponent implements OnInit {
     this.activeFilter.set('relevance');
     const loc = this.locationService.currentLocation();
     this.loadRestaurants(loc.lat, loc.lon);
+  }
+
+  // Cuisine-aware fallback images from Unsplash (reliable CDN)
+  getFallbackImage(cuisine: string): string {
+    const c = (cuisine || '').toLowerCase();
+    if (c.includes('pizza')) return 'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800&q=80';
+    if (c.includes('chinese')) return 'https://images.unsplash.com/photo-1585032226651-759b368d7246?w=800&q=80';
+    if (c.includes('biryani') || c.includes('indian')) return 'https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=800&q=80';
+    if (c.includes('burger')) return 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=80';
+    if (c.includes('beverage') || c.includes('cafe')) return 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&q=80';
+    if (c.includes('sweet') || c.includes('dessert')) return 'https://images.unsplash.com/photo-1563805042-7684c019e1cb?w=800&q=80';
+    if (c.includes('veg')) return 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&q=80';
+    if (c.includes('italian')) return 'https://images.unsplash.com/photo-1498579150354-977475b7ea0b?w=800&q=80';
+    // Default: vibrant Indian restaurant photo
+    return 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80';
+  }
+
+  onImgError(event: Event, cuisine: string) {
+    const img = event.target as HTMLImageElement;
+    img.src = this.getFallbackImage(cuisine);
   }
 }

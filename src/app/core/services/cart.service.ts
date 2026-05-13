@@ -7,7 +7,7 @@ import { Cart, CartItem } from '../models';
   providedIn: 'root'
 })
 export class CartService {
-  private apiUrl = 'https://gateway-service-a8bo.onrender.com/api/v1/cart';
+  private apiUrl = 'http://localhost:8080/api/v1/cart';
   
   cart = signal<Cart>({ cartId: '', restaurantId: '', items: [], subTotal: 0, discountAmount: 0, taxAmount: 0, grandTotal: 0 });
 

@@ -15,6 +15,14 @@ import { HttpClient } from '@angular/common/http';
   imports: [CommonModule, RouterModule, FormsModule],
   template: `
     <div class="owner-container">
+      <!-- Toast Notification -->
+      @if (showToast()) {
+        <div class="toast animate-slide-in" [class.error]="isError()" [class.success]="!isError()">
+          <span class="toast-icon">{{ isError() ? '❌' : '✅' }}</span>
+          <span class="toast-text">{{ toastMessage() }}</span>
+        </div>
+      }
+
       <!-- Sidebar -->
       <aside class="sidebar">
         <div class="brand">
@@ -144,15 +152,15 @@ import { HttpClient } from '@angular/common/http';
                           <td><span class="status-badge">{{ order.status }}</span></td>
                           <td>
                             <div class="action-cell">
-                              <select class="status-select" #statusSelect [value]="order.status">
-                                <option value="PLACED">Placed</option>
-                                <option value="CONFIRMED">Confirmed</option>
-                                <option value="PREPARING">Preparing</option>
-                                <option value="READY">Ready</option>
-                                <option value="PICKED_UP">Picked Up</option>
-                                <option value="DELIVERED">Delivered</option>
-                              </select>
-                              <button class="btn-update" (click)="updateStatus(order.id, statusSelect.value)">Update</button>
+                              @if (order.status === 'PLACED') {
+                                <button class="btn-update" (click)="updateStatus(order.id, 'CONFIRMED')">Accept Order</button>
+                              } @else if (order.status === 'CONFIRMED') {
+                                <button class="btn-update" style="background:#f59e0b;" (click)="updateStatus(order.id, 'PREPARING')">Start Preparing</button>
+                              } @else if (order.status === 'PREPARING') {
+                                <button class="btn-update" style="background:#10b981;" (click)="updateStatus(order.id, 'READY')">Mark Ready</button>
+                              } @else {
+                                <span class="text-muted" style="font-size:0.8rem; font-weight:700; color:#8c7a6e;">Waiting for Agent</span>
+                              }
                             </div>
                           </td>
                         </tr>
@@ -242,15 +250,15 @@ import { HttpClient } from '@angular/common/http';
                   </div>
                   <div class="profile-details-grid" style="flex:1; display:grid; grid-template-columns:1fr 1fr; gap:2rem;">
                     <div class="info-row">
-                      <label>NAME</label>
+                      <label>NAME :</label>
                       <span>{{ currentRestaurant()?.name }}</span>
                     </div>
                     <div class="info-row">
-                      <label>CUISINE</label>
+                      <label>CUISINE :</label>
                       <span>{{ currentRestaurant()?.cuisine }}</span>
                     </div>
                     <div class="info-row" style="grid-column: span 2;">
-                      <label>ADDRESS</label>
+                      <label>ADDRESS :</label>
                       <span>{{ currentRestaurant()?.address }}, {{ currentRestaurant()?.city }}</span>
                     </div>
                   </div>
@@ -486,6 +494,11 @@ import { HttpClient } from '@angular/common/http';
     
     .item-checkbox { width: 18px; height: 18px; border: 2px solid #f0e0d0; border-radius: 4px; accent-color: #6b4f3b; cursor: pointer; }
 
+    /* Profile Tab */
+    .info-row { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1rem; }
+    .info-row label { font-size: 0.85rem; font-weight: 800; color: #8c7a6e; text-transform: uppercase; min-width: 85px; white-space: nowrap; }
+    .info-row span { font-size: 1.1rem; font-weight: 700; color: #3d2b1f; }
+
     /* Modals */
     .modal-overlay { position: fixed; inset: 0; background: rgba(61, 43, 31, 0.4); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; }
     .modal-card { background: white; width: 500px; border-radius: 32px; padding: 2.5rem; box-shadow: 0 25px 80px rgba(0,0,0,0.15); }
@@ -516,6 +529,30 @@ import { HttpClient } from '@angular/common/http';
 
     .animate-fade-in { animation: fadeIn 0.4s ease-out; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #3d2b1f;
+      color: white;
+      padding: 1rem 2.5rem;
+      border-radius: 100px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      z-index: 9999;
+      font-weight: 800;
+      transition: all 0.3s;
+    }
+    .toast.error { background: #ef4444; }
+    .toast.success { background: #22c55e; }
+    .toast-icon { font-size: 1.2rem; }
+    .animate-slide-in { animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes slideIn { from { top: -5rem; opacity: 0; } to { top: 2rem; opacity: 1; } }
   `]
 })
 export class OwnerDashboardComponent {
@@ -528,6 +565,11 @@ export class OwnerDashboardComponent {
 
   activeTab = signal('overview');
   loading = signal(false);
+  
+  // Toast
+  showToast = signal(false);
+  toastMessage = signal('');
+  isError = signal(false);
 
   myRestaurants = signal<Restaurant[]>([]);
   selectedRestaurantId = signal<string | null>(null);
@@ -640,8 +682,15 @@ export class OwnerDashboardComponent {
   }
 
   updateStatus(orderId: string, status: string) {
-    this.orderService.updateOrderStatus(orderId, status).subscribe(() => {
-      this.fetchRestaurantData();
+    this.orderService.updateOrderStatus(orderId, status).subscribe({
+      next: () => {
+        this.fetchRestaurantData();
+        this.showSuccess('Order status updated!');
+      },
+      error: (err) => {
+        console.error('Error updating status', err);
+        this.showError('Failed to update status. Ensure you have the correct permissions.');
+      }
     });
   }
 
@@ -676,15 +725,17 @@ export class OwnerDashboardComponent {
     const id = this.selectedRestaurantId();
     if (!id) return;
     
-    if (this.editingCategory()) {
+     if (this.editingCategory()) {
        this.menuService.updateCategory(this.editingCategory().categoryId, { restaurantId: id, name, description }).subscribe(() => {
          this.showCategoryModal.set(false);
          this.fetchMenu();
+         this.showSuccess('Category updated successfully!');
        });
     } else {
        this.menuService.addCategory({ restaurantId: id, name, description }).subscribe(() => {
          this.showCategoryModal.set(false);
          this.fetchMenu();
+         this.showSuccess('Category added successfully!');
        });
     }
   }
@@ -704,11 +755,13 @@ export class OwnerDashboardComponent {
       this.menuService.updateMenuItem(this.editingItem().id, itemData).subscribe(() => {
         this.showItemModal.set(false);
         this.fetchMenu();
+        this.showSuccess('Menu item updated!');
       });
     } else {
       this.menuService.addMenuItem(itemData).subscribe(() => {
         this.showItemModal.set(false);
         this.fetchMenu();
+        this.showSuccess('New item added to menu!');
       });
     }
   }
@@ -720,7 +773,24 @@ export class OwnerDashboardComponent {
   }
 
   toggleItem(itemId: string) {
-    this.menuService.toggleItemAvailability(itemId).subscribe(() => this.fetchMenu());
+    this.menuService.toggleItemAvailability(itemId).subscribe(() => {
+      this.fetchMenu();
+      this.showSuccess('Availability updated');
+    });
+  }
+
+  showSuccess(msg: string) {
+    this.toastMessage.set(msg);
+    this.isError.set(false);
+    this.showToast.set(true);
+    setTimeout(() => this.showToast.set(false), 3000);
+  }
+
+  showError(msg: string) {
+    this.toastMessage.set(msg);
+    this.isError.set(true);
+    this.showToast.set(true);
+    setTimeout(() => this.showToast.set(false), 3000);
   }
 
   seedMyOutlets() {

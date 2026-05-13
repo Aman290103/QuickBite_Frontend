@@ -122,7 +122,9 @@ import { Order } from '../../core/models';
                           <span class="address">{{ ride.deliveryAddress }}</span>
                         </div>
                         <div class="ride-actions">
-                          @if (canPickUp(ride)) {
+                          @if (ride.status === 'PLACED') {
+                            <button class="btn-step" disabled style="background: #ccc; cursor: not-allowed; color: #666;">Waiting for Restaurant</button>
+                          } @else if (canPickUp(ride)) {
                             <button class="btn-step" (click)="updateStatus(ride.id, 'PICKED_UP')">Pick Up</button>
                           } @else if (isPickedUp(ride)) {
                             <button class="btn-step delivered" (click)="updateStatus(ride.id, 'DELIVERED')">Complete Delivery</button>

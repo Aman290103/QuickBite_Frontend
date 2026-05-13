@@ -29,6 +29,31 @@ import { Order } from '../../core/models';
               </div>
             </div>
             
+            <div class="order-tracker" *ngIf="order.status !== 'DELIVERED' && order.status !== 'CANCELLED'">
+              <div class="step" [class.active]="true">
+                <div class="circle">✓</div>
+                <span>Placed</span>
+              </div>
+              
+              <div class="line" [class.active]="isStatusAtLeast(order.status, 'CONFIRMED') || !!order.agentId"></div>
+              <div class="step" [class.active]="isStatusAtLeast(order.status, 'CONFIRMED') || !!order.agentId">
+                <div class="circle">🤝</div>
+                <span>Accepted</span>
+              </div>
+
+              <div class="line" [class.active]="isStatusAtLeast(order.status, 'PREPARING')"></div>
+              <div class="step" [class.active]="isStatusAtLeast(order.status, 'PREPARING')">
+                <div class="circle">🍳</div>
+                <span>Preparing</span>
+              </div>
+              
+              <div class="line" [class.active]="isStatusAtLeast(order.status, 'PICKED_UP')"></div>
+              <div class="step" [class.active]="isStatusAtLeast(order.status, 'PICKED_UP')">
+                <div class="circle">🛵</div>
+                <span>On the way</span>
+              </div>
+            </div>
+            
             <div class="order-items">
               @for (item of order.items; track item.name) {
                 <div class="item">
@@ -142,6 +167,62 @@ import { Order } from '../../core/models';
     .status-badge.delivered { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
     .status-badge.cancelled { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
     
+    .order-tracker {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: rgba(255,82,49,0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255,82,49,0.1);
+    }
+    .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      opacity: 0.5;
+      z-index: 2;
+    }
+    .step.active {
+      opacity: 1;
+      color: var(--text-main);
+      font-weight: 700;
+    }
+    .step .circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--border);
+      font-size: 1.1rem;
+      transition: all 0.3s ease;
+    }
+    .step.active .circle {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: white;
+      box-shadow: 0 0 15px rgba(255,82,49,0.3);
+    }
+    .line {
+      flex: 1;
+      height: 4px;
+      background: var(--border);
+      margin: 0 10px;
+      margin-top: -1.5rem;
+      border-radius: 2px;
+      z-index: 1;
+      transition: all 0.5s ease;
+    }
+    .line.active {
+      background: var(--primary);
+    }
+
     .order-items {
       display: flex;
       flex-direction: column;
@@ -292,6 +373,14 @@ export class OrderHistoryComponent implements OnInit {
   submitting = signal(false);
 
   ngOnInit() {
+    this.fetchOrders();
+    // Auto-refresh every 10 seconds to reflect real-time status updates from the restaurant/agent
+    setInterval(() => {
+      this.fetchOrders();
+    }, 10000);
+  }
+
+  fetchOrders() {
     this.orderService.getCustomerHistory().subscribe(data => this.orders.set(data));
   }
 
@@ -300,6 +389,13 @@ export class OrderHistoryComponent implements OnInit {
     this.rating.set(0);
     this.comment = '';
     this.showReviewModal.set(true);
+  }
+
+  isStatusAtLeast(current: string, required: string): boolean {
+    const statuses = ['PLACED', 'CONFIRMED', 'PREPARING', 'READY', 'PICKED_UP', 'DELIVERED'];
+    const currentIndex = statuses.indexOf(current);
+    const requiredIndex = statuses.indexOf(required);
+    return currentIndex >= requiredIndex && currentIndex !== -1;
   }
 
   submitReview() {

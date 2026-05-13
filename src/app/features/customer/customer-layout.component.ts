@@ -36,7 +36,27 @@ import { SearchService } from '../../core/services/search.service';
               <a routerLink="/customer/history" class="nav-link">Orders</a>
               <a routerLink="/customer/wallet" class="nav-link">Wallet</a>
               
-              <div class="user-profile" (click)="showUserMenu = !showUserMenu">
+              <div class="notification-bell" (click)="showNotifications = !showNotifications; showUserMenu = false">
+                <span class="bell-icon">🔔</span>
+                <span class="notif-badge">1</span>
+                
+                <div class="dropdown-menu card notif-menu" *ngIf="showNotifications" (click)="$event.stopPropagation()">
+                  <div class="notif-header">
+                    <h4>Notifications</h4>
+                  </div>
+                  <div class="notif-list">
+                    <div class="notif-item unread">
+                      <div class="notif-icon">🎉</div>
+                      <div class="notif-text">
+                        <strong>Exclusive Offer!</strong>
+                        <p>Use code QUICK20 on Fast Delivery to get 20% off.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="user-profile" (click)="showUserMenu = !showUserMenu; showNotifications = false">
                 <div class="avatar">{{ userInitial() }}</div>
                 <span class="user-name">{{ userFirstName() }}</span>
                 
@@ -251,6 +271,42 @@ import { SearchService } from '../../core/services/search.service';
       z-index: 10;
     }
     
+    /* Notification Bell Styles */
+    .notification-bell {
+      position: relative;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg-light);
+      transition: var(--transition);
+      margin-right: 0.5rem;
+    }
+    .notification-bell:hover { background: rgba(255,82,49,0.1); }
+    .bell-icon { font-size: 1.25rem; }
+    .notif-badge {
+      position: absolute; top: -2px; right: -2px; background: var(--primary); color: white;
+      font-size: 0.65rem; font-weight: 800; width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid white;
+    }
+    .notif-menu {
+      width: 320px; right: -10px; top: 130%; padding: 0; overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1); border: 1px solid var(--border);
+    }
+    .notif-header { padding: 1rem; border-bottom: 1px solid var(--border); background: var(--bg-light); }
+    .notif-header h4 { margin: 0; font-size: 0.95rem; font-weight: 800; }
+    .notif-list { max-height: 300px; overflow-y: auto; }
+    .notif-item { display: flex; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--border); transition: var(--transition); }
+    .notif-item:hover { background: rgba(255,82,49,0.02); }
+    .notif-item.unread { background: rgba(255,82,49,0.05); }
+    .notif-icon { font-size: 1.5rem; }
+    .notif-text strong { display: block; font-size: 0.9rem; color: var(--text-main); margin-bottom: 0.25rem; }
+    .notif-text p { margin: 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
+
+    
     .dropdown-menu a, .dropdown-menu button {
       display: block;
       width: 100%;
@@ -353,6 +409,7 @@ export class CustomerLayoutComponent {
   user = this.authService.currentUser;
   cart = this.cartService.cart;
   showUserMenu = false;
+  showNotifications = false;
 
   userFirstName = computed(() => this.user()?.fullName?.split(' ')[0] || 'User');
   userInitial = computed(() => this.user()?.fullName?.charAt(0) || 'U');

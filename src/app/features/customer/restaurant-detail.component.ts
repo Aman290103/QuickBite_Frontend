@@ -51,7 +51,7 @@ import { StarRatingComponent } from '../../shared/components/star-rating.compone
         </div>
         
         <div class="image-gallery">
-          <div class="main-img" [style.background-image]="'url(' + (restaurant()?.imageUrl || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1000') + ')'"></div>
+          <div class="main-img" [style.background-image]="'url(' + (restaurant()?.imageUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1000') + ')'"></div>
           <div class="side-imgs">
             <div style="background-image: url('https://images.unsplash.com/photo-1552566626-52f8b828add9?w=400')"></div>
             <div style="background-image: url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400')"></div>
@@ -98,7 +98,8 @@ import { StarRatingComponent } from '../../shared/components/star-rating.compone
                       <p class="item-desc">{{ item.description }}</p>
                     </div>
                     <div class="item-action">
-                      <div class="item-img" [style.background-image]="'url(' + (item.imageUrl || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400') + ')'"></div>
+                      <div class="item-img" [style.background-image]="'url(' + item.imageUrl + ')'" *ngIf="item.imageUrl"></div>
+                      <div class="item-img-placeholder" *ngIf="!item.imageUrl">🍲</div>
                       <button class="add-btn" (click)="addToCart(item)" [disabled]="!item.isAvailable">
                         {{ item.isAvailable ? 'ADD' : 'SOLD OUT' }} <span class="plus" *ngIf="item.isAvailable">+</span>
                       </button>
@@ -260,6 +261,18 @@ import { StarRatingComponent } from '../../shared/components/star-rating.compone
       background-size: cover;
       background-position: center;
     }
+
+    .main-img-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-light);
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      border: 2px dashed var(--border);
+    }
     
     .side-imgs {
       display: grid;
@@ -404,6 +417,18 @@ import { StarRatingComponent } from '../../shared/components/star-rating.compone
       background-position: center;
       border-radius: 12px;
       box-shadow: var(--shadow-sm);
+    }
+
+    .item-img-placeholder {
+      width: 140px;
+      height: 140px;
+      background: var(--bg-light);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      color: var(--text-muted);
     }
     
     .add-btn {

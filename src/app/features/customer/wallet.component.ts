@@ -10,6 +10,14 @@ import { FormsModule } from '@angular/forms';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="wallet-container animate-slide-up">
+      <!-- Toast Notification -->
+      @if (showToast()) {
+        <div class="toast animate-slide-in" [class.error]="isError()" [class.success]="!isError()">
+          <span class="toast-icon">{{ isError() ? '❌' : '✅' }}</span>
+          <span class="toast-text">{{ toastMessage() }}</span>
+        </div>
+      }
+      
       <header class="section-header">
         <h1>My Wallet</h1>
         <p class="text-muted">Manage your funds and transaction history</p>
@@ -98,9 +106,9 @@ import { FormsModule } from '@angular/forms';
     .card-glass {
       padding: 3rem;
       border-radius: 24px;
-      background: linear-gradient(135deg, var(--secondary), #1a1c23);
+      background: linear-gradient(135deg, #ff5231, #ff8e31);
       color: white;
-      box-shadow: var(--shadow-lg);
+      box-shadow: 0 15px 35px rgba(255, 82, 49, 0.2);
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -108,9 +116,9 @@ import { FormsModule } from '@angular/forms';
     }
     
     .card-glass .label {
-      color: rgba(255,255,255,0.6);
+      color: rgba(255,255,255,0.8);
       font-size: 0.875rem;
-      font-weight: 600;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 0.5rem;
@@ -121,6 +129,7 @@ import { FormsModule } from '@angular/forms';
       font-weight: 800;
       margin-bottom: 2.5rem;
       letter-spacing: -1px;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.1);
     }
     
     .history-card {
@@ -301,6 +310,29 @@ import { FormsModule } from '@angular/forms';
       .wallet-grid { grid-template-columns: 1fr; }
       .card-glass { min-height: 200px; }
     }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #3d2b1f; /* Default */
+      color: white;
+      padding: 1rem 2.5rem;
+      border-radius: 100px;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+      z-index: 9999;
+      font-weight: 800;
+      transition: all 0.3s;
+    }
+    .toast.error { background: #ef4444; }
+    .toast.success { background: #22c55e; }
+    .animate-slide-in { animation: slideIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes slideIn { from { top: -5rem; opacity: 0; } to { top: 2rem; opacity: 1; } }
   `]
 })
 export class WalletComponent implements OnInit {
@@ -310,6 +342,11 @@ export class WalletComponent implements OnInit {
   statements = signal<WalletStatement[]>([]);
   showAddMoney = false;
   addAmount = 0;
+
+  // Feedback
+  showToast = signal(false);
+  toastMessage = signal('');
+  isError = signal(false);
 
   ngOnInit() {
     this.loadData();
@@ -322,11 +359,36 @@ export class WalletComponent implements OnInit {
 
   onAddMoney() {
     if (this.addAmount > 0) {
-      this.walletService.addMoney(this.addAmount).subscribe(() => {
-        this.loadData();
-        this.showAddMoney = false;
-        this.addAmount = 0;
+      this.walletService.addMoney(this.addAmount).subscribe({
+        next: () => {
+          this.loadData();
+          this.showAddMoney = false;
+          this.addAmount = 0;
+          this.showFeedback('Funds added successfully!');
+        },
+        error: (err) => {
+          console.error(err);
+          this.showFeedback('Failed to add funds. Check if Payment service is running.', true);
+        }
       });
     }
+  }
+
+  resetBalance() {
+    // Hidden debug feature for user
+    this.walletService.addMoney(10000).subscribe({
+      next: () => {
+        this.loadData();
+        this.showFeedback('Balance reset to 10,000 INR!');
+      },
+      error: () => this.showFeedback('Reset failed.', true)
+    });
+  }
+
+  showFeedback(msg: string, error = false) {
+    this.toastMessage.set(msg);
+    this.isError.set(error);
+    this.showToast.set(true);
+    setTimeout(() => this.showToast.set(false), 4000);
   }
 }

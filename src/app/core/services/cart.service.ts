@@ -2,12 +2,13 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap, of, catchError } from 'rxjs';
 import { Cart, CartItem } from '../models';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class CartService {
-  private apiUrl = 'http://localhost:8080/api/v1/cart';
+  private apiUrl = `${environment.apiUrl}/cart`;
   
   cart = signal<Cart>({ cartId: '', restaurantId: '', items: [], subTotal: 0, discountAmount: 0, taxAmount: 0, grandTotal: 0 });
 

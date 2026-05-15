@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, switchMap } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 declare var Razorpay: any;
 
@@ -9,7 +10,7 @@ declare var Razorpay: any;
 })
 export class PaymentService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/v1/payments';
+  private apiUrl = `${environment.apiUrl}/payments`;
   private razorpayKey = 'rzp_test_SfiZQYAPtU4oMA';
 
   initiateRazorpayPayment(amount: number, orderId: string): Observable<any> {

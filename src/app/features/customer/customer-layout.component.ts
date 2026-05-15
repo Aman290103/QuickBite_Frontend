@@ -5,6 +5,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { CartService } from '../../core/services/cart.service';
 import { LocationService } from '../../core/services/location.service';
 import { SearchService } from '../../core/services/search.service';
+import { NotificationService } from '../../core/services/notification.service';
+import { AppNotification } from '../../core/models';
 
 @Component({
   selector: 'app-customer-layout',
@@ -38,20 +40,28 @@ import { SearchService } from '../../core/services/search.service';
               
               <div class="notification-bell" (click)="showNotifications = !showNotifications; showUserMenu = false">
                 <span class="bell-icon">🔔</span>
-                <span class="notif-badge">1</span>
+                @if (notifications().length > 0) {
+                  <span class="notif-badge">{{ notifications().length }}</span>
+                }
                 
                 <div class="dropdown-menu card notif-menu" *ngIf="showNotifications" (click)="$event.stopPropagation()">
                   <div class="notif-header">
                     <h4>Notifications</h4>
                   </div>
                   <div class="notif-list">
-                    <div class="notif-item unread">
-                      <div class="notif-icon">🎉</div>
-                      <div class="notif-text">
-                        <strong>Exclusive Offer!</strong>
-                        <p>Use code QUICK20 on Fast Delivery to get 20% off.</p>
+                    @for (note of notifications(); track note.id) {
+                      <div class="notif-item unread">
+                        <div class="notif-icon">{{ note.restaurantId === 'system' ? '🎉' : '📢' }}</div>
+                        <div class="notif-text">
+                          <strong>{{ note.restaurantName }} {{ note.restaurantId !== 'system' ? '-' : '' }} {{ note.title }}</strong>
+                          <p>{{ note.message }}</p>
+                        </div>
                       </div>
-                    </div>
+                    } @empty {
+                      <div class="notif-empty" style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                        <p>No new updates for now.</p>
+                      </div>
+                    }
                   </div>
                 </div>
               </div>
@@ -404,16 +414,47 @@ export class CustomerLayoutComponent {
   private cartService = inject(CartService);
   private locationService = inject(LocationService);
   private searchService = inject(SearchService);
+  private notificationService = inject(NotificationService);
   private router = inject(Router);
 
   user = this.authService.currentUser;
   cart = this.cartService.cart;
   showUserMenu = false;
   showNotifications = false;
+  notifications = signal<AppNotification[]>([]);
+
+  private systemOffer: AppNotification = {
+    id: 'system-1',
+    restaurantId: 'system',
+    restaurantName: 'QuickBite',
+    title: 'Exclusive Offer!',
+    message: 'Use code QUICK20 on Fast Delivery to get 20% off.',
+    status: 'APPROVED',
+    createdAt: new Date().toISOString()
+  };
 
   userFirstName = computed(() => this.user()?.fullName?.split(' ')[0] || 'User');
   userInitial = computed(() => this.user()?.fullName?.charAt(0) || 'U');
   locationAddress = this.locationService.address;
+
+  constructor() {
+    this.fetchNotifications();
+    // Refresh every minute
+    setInterval(() => this.fetchNotifications(), 60000);
+  }
+
+  fetchNotifications() {
+    this.notificationService.getApprovedNotifications().subscribe({
+      next: (notes) => {
+        // Merge system offer with live notes, prioritizing live ones
+        this.notifications.set([...notes, this.systemOffer]);
+      },
+      error: (err) => {
+        console.error('Error fetching customer notifications', err);
+        this.notifications.set([this.systemOffer]);
+      }
+    });
+  }
 
   onLogout() {
     this.authService.logout();

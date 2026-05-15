@@ -104,3 +104,13 @@ export interface MenuItem {
   isAvailable: boolean;
   avgRating: number;
 }
+
+export interface AppNotification {
+  id: string;
+  restaurantId: string;
+  restaurantName: string;
+  title: string;
+  message: string;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  createdAt: string;
+}

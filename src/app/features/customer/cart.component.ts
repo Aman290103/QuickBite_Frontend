@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { CartService } from '../../core/services/cart.service';
 import { OrderService } from '../../core/services/order.service';
 import { PaymentService } from '../../core/services/payment.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-cart',
@@ -209,7 +210,44 @@ import { PaymentService } from '../../core/services/payment.service';
         </div>
       </div>
 
-      <ng-template #emptyCart>
+      <div class="success-overlay-container" *ngIf="showSuccessOverlay()">
+    <div class="success-card glass animate-scale">
+      <div class="success-icon-wrapper">
+        <div class="check-circle">
+          <svg viewBox="0 0 52 52" class="checkmark">
+            <circle cx="26" cy="26" r="25" fill="none" class="checkmark-circle"/>
+            <path fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" class="checkmark-check"/>
+          </svg>
+        </div>
+      </div>
+      
+      <h2>Order Placed Successfully!</h2>
+      <p class="order-id-display">Transaction Reference: #{{ currentOrderId.substring(0,10) }}</p>
+      
+      <div class="notification-status">
+        <div class="status-item animate-item" style="--delay: 0.5s">
+          <div class="status-dot pulse"></div>
+          <span class="status-icon">📧</span>
+          <div class="status-text">
+            <strong>Email Sent</strong>
+            <span>Receipt delivered to {{ user()?.email }}</span>
+          </div>
+        </div>
+        <div class="status-item animate-item" style="--delay: 1.2s">
+          <div class="status-dot pulse"></div>
+          <span class="status-icon">📱</span>
+          <div class="status-text">
+            <strong>SMS Confirmed</strong>
+            <span>Tracking link sent to {{ user()?.phone }}</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary full-width" (click)="goToHistory()">View Order Tracking</button>
+    </div>
+  </div>
+
+  <ng-template #emptyCart>
         <div class="empty-state-card card">
           <img src="https://cdni.iconscout.com/illustration/premium/thumb/empty-cart-2130356-1800917.png" alt="Empty">
           <h2>Your cart is empty</h2>
@@ -318,6 +356,27 @@ import { PaymentService } from '../../core/services/payment.service';
     
     .secure-footer { display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 2rem; font-size: 0.7rem; color: var(--text-muted); }
 
+    /* Success Overlay Styles */
+    .success-overlay-container { position: fixed; inset: 0; background: rgba(61, 43, 31, 0.4); backdrop-filter: blur(12px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .success-card { background: white; width: 100%; max-width: 500px; padding: 3rem; border-radius: 40px; text-align: center; box-shadow: var(--shadow-lg); }
+    .success-icon-wrapper { margin-bottom: 2rem; display: flex; justify-content: center; }
+    .check-circle { width: 100px; height: 100px; }
+    .checkmark { width: 100px; height: 100px; border-radius: 50%; display: block; stroke-width: 2; stroke: #ffffff; stroke-miterlimit: 10; box-shadow: inset 0px 0px 0px #22c55e; animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both; }
+    .checkmark-circle { stroke-dasharray: 166; stroke-dashoffset: 166; stroke-width: 2; stroke-miterlimit: 10; stroke: #22c55e; fill: none; animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards; }
+    .checkmark-check { transform-origin: 50% 50%; stroke-dasharray: 48; stroke-dashoffset: 48; stroke: #ffffff; stroke-width: 4; animation: stroke 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards; }
+
+    @keyframes stroke { 100% { stroke-dashoffset: 0; } }
+    @keyframes fill { 100% { box-shadow: inset 0px 0px 0px 50px #22c55e; } }
+
+    .order-id-display { font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: var(--text-muted); margin-top: 0.5rem; margin-bottom: 2.5rem; }
+    .notification-status { background: var(--bg-light); border-radius: 24px; padding: 1.5rem; margin-bottom: 2.5rem; text-align: left; }
+    .status-item { display: flex; align-items: center; gap: 1rem; padding: 1rem 0; animation: fadeIn 0.5s both; animation-delay: var(--delay); }
+    .status-item:not(:last-child) { border-bottom: 1px solid var(--border); }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; }
+    .status-dot.pulse { animation: pulse 2s infinite; }
+    .status-text strong { display: block; font-size: 0.9rem; color: var(--text-main); }
+    .status-text span { font-size: 0.75rem; color: var(--text-muted); }
+
     @media (max-width: 1024px) { .cart-grid { grid-template-columns: 1fr; } .sticky-card { position: static; } }
   `]
 })
@@ -325,10 +384,13 @@ export class CartComponent implements OnInit {
   private cartService = inject(CartService);
   private orderService = inject(OrderService);
   private paymentService = inject(PaymentService);
+  private authService = inject(AuthService);
   private router = inject(Router);
   
+  user = this.authService.currentUser;
   cart = this.cartService.cart;
   loading = signal(false);
+  showSuccessOverlay = signal(false);
   deliveryAddress = '';
   paymentMode: 'ONLINE' | 'WALLET' | 'COD' | 'UPI' = 'ONLINE';
   
@@ -377,7 +439,11 @@ export class CartComponent implements OnInit {
       modeOfPayment: this.paymentMode,
       deliveryAddress: this.deliveryAddress,
       specialInstructions: '',
-      promoCode: this.appliedPromo() ? 'QUICK20' : null
+      // [FEATURE: NOTIFICATIONS] - Capture customer contact info
+      // This sends the user's current email and phone to the backend Order Service
+      // so that they can be used for the digital confirmation system.
+      customerEmail: this.user()?.email,
+      customerPhone: this.user()?.phone
     };
         this.orderService.placeOrder(orderData).subscribe({
       next: (order: any) => {
@@ -432,10 +498,14 @@ export class CartComponent implements OnInit {
   }
 
   private handleSuccess() {
-    alert('Order placed successfully! 🎉\n\n📱 SMS SENT: "Your QuickBite order has been confirmed and is being prepared. Track your order status in the app!"');
+    this.showSuccessOverlay.set(true);
     this.cartService.clearCart().subscribe();
-    this.router.navigate(['/customer/history']);
     this.loading.set(false);
+  }
+
+  goToHistory() {
+    this.showSuccessOverlay.set(false);
+    this.router.navigate(['/customer/history']);
   }
 
   private handleError(err: any) {
